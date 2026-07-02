@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Env / secrets
+.env
+*.pem
+*.key
+
+# Terraform (Phase 8)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Node / frontend (Phase 6)
+node_modules/
+dist/
+
+# Editor / OS
+.DS_Store
