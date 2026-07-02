@@ -1,0 +1,41 @@
+# Production-style stack: clients reach Nginx only; api and db stay internal.
+#   docker compose -f docker-compose.prod.yml up --build -d
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloudops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudops}
+      POSTGRES_DB: ${POSTGRES_DB:-cloudops}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudops}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: always
+    # No host port: the database is not reachable from outside the compose network.
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-cloudops}:${POSTGRES_PASSWORD:-cloudops}@db:5432/${POSTGRES_DB:-cloudops}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env for prod}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"        # visible to nginx on the internal network only
+    restart: always
+
+  nginx:
+    build: ./nginx
+    depends_on:
+      - api
+    ports:
+      - "80:80"       # the only publicly exposed port
+    restart: always
+
+volumes:
+  pgdata:
